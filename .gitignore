@@ -1,0 +1,9 @@
+# Created by .ignore support plugin (hsz.mobi)
+
+*.local
+*.idea
+*.iml
+localfiles/
+zlocalfiles/
+.DS_Store
+target/

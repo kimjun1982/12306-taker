@@ -1,0 +1,9 @@
+from = 潮汕
+to = 广州南
+date = 2017-04-24
+passengerName = 姓名1,姓名2
+targetTimeFrom =14:24
+targetTimeTo =22:39
+timeIntervalBetweenSeleniumQuery = 100
+timeIntervalBetweenHttpRequestQuery=1000
+whenToStartQuery = 2016-04-06 23:02:00
