@@ -40,6 +40,11 @@ public class SeleniumThreadHelper {
 
         for (int index = 0; index < queryTicketResultRows.size(); index++) {
             QueryTicketRow thisRow = queryTicketResultRows.get(index);
+
+            if (thisRow.getAvailableTicketCount() <= 0) continue;
+
+            if (inSkipList(thisRow, travelInfo)) continue;
+
             LocalTime actualDeparture = LocalTime.parse(thisRow.getDepartureTime(), timeFormatter);
 
             if (isMatchPreferredTimeRange(actualDeparture, expectedDepartureFrom, expectedDepartureTo)) {
@@ -49,12 +54,25 @@ public class SeleniumThreadHelper {
         return -1;
     }
 
+    private static boolean inSkipList(QueryTicketRow thisRow, TravelInfo travelInfo) {
+        String[] skips = travelInfo.getSkips();
+        for (int i = 0; i < skips.length; i++) {
+            if (thisRow.getTrainNumber().trim().equals(skips[i].trim())) return true;
+        }
+        return false;
+    }
+
     public static int findLastWithinTimeRange(List<QueryTicketRow> queryTicketResultRows, TravelInfo travelInfo) {
         LocalTime expectedDepartureFrom = LocalTime.parse(travelInfo.getExpectedDepartureFromTime(), timeFormatter);
         LocalTime expectedDepartureTo = LocalTime.parse(travelInfo.getExpectedDepartureToTime(), timeFormatter);
 
         for (int index = queryTicketResultRows.size() - 1; index >= 0; index++) {
             QueryTicketRow thisRow = queryTicketResultRows.get(index);
+
+            if (thisRow.getAvailableTicketCount() <= 0) continue;
+
+            if (inSkipList(thisRow, travelInfo)) continue;
+
             LocalTime actualDeparture = LocalTime.parse(thisRow.getDepartureTime(), timeFormatter);
 
             if (isMatchPreferredTimeRange(actualDeparture, expectedDepartureFrom, expectedDepartureTo)) {
@@ -72,6 +90,11 @@ public class SeleniumThreadHelper {
         int resultIndex = -1;
         for (int index = 0; index < queryTicketResultRows.size(); index++) {
             QueryTicketRow thisRow = queryTicketResultRows.get(index);
+
+            if (thisRow.getAvailableTicketCount() <= 0) continue;
+
+            if (inSkipList(thisRow, travelInfo)) continue;
+
             LocalTime actualDeparture = LocalTime.parse(thisRow.getDepartureTime(), timeFormatter);
 
             if (isMatchPreferredTimeRange(actualDeparture, expectedDepartureFrom, expectedDepartureTo)) {

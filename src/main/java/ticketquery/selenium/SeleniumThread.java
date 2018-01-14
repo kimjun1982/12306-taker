@@ -1,18 +1,13 @@
 package ticketquery.selenium;
 
-import com.google.common.base.Stopwatch;
 import defaultpackage.Config;
 import defaultpackage.TravelInfo;
 import model.QueryTicketRow;
-import org.apache.commons.lang3.time.StopWatch;
-import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 public class SeleniumThread implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(SeleniumThread.class);
@@ -50,11 +45,14 @@ public class SeleniumThread implements Runnable {
             try {
                 log.info("Selenium Request:: Consuming arrived data");
 
-                Stopwatch stopWatch = Stopwatch.createStarted();
-
                 List<QueryTicketRow> queryResultList = pageObject.clickQueryButtonEnsureResultReturn(queryTimeInterval);
 
                 int bookingIndex = SeleniumThreadHelper.findFirstWithinTimeRange(queryResultList, travelInfo);
+
+                if (bookingIndex <= -1) {
+                    Thread.sleep(travelInfo.getTimeIntervalBetweenSeleniumQuery());
+                    continue;
+                }
 
                 pageObject.clickBookButtonByDriver(bookingIndex);
 
@@ -63,7 +61,6 @@ public class SeleniumThread implements Runnable {
                 pageObject.submitOrder();
 
                 pageObject.confirmOrder();
-
 
                 if (pageObject.hasProceededToPayment(120)) {
                     log.info(" Congratulations, book successfully, pls do payment manually");

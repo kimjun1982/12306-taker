@@ -10,10 +10,10 @@ public class TravelInfo {
     private String[] passengerList;
     private String expectedDepartureFromTime;
     private String expectedDepartureToTime;
-
     private int timeIntervalBetweenSeleniumQuery;
     private int timeIntervalBetweenHttpRequestQuery;
     private String startTimeToQuery;
+    private String[] skips;
 
     private static TravelInfo INSTANCE = new TravelInfo();
 
@@ -21,12 +21,12 @@ public class TravelInfo {
         return INSTANCE;
     }
 
-    private TravelInfo(){
+    private TravelInfo() {
         Properties properties = new Properties();
         try {
             InputStream is = TravelInfo.class.getClassLoader().getResourceAsStream(Config.travelInfoClasspath);
             properties.load(is);
-            fromStation = getPropertyAsString(properties,"from");
+            fromStation = getPropertyAsString(properties, "from");
             toStation = getPropertyAsString(properties, "to");
             passengerList = getPropertyAsString(properties, "passengerName").split(",");
             departureDate = getPropertyAsString(properties, "date");
@@ -34,8 +34,10 @@ public class TravelInfo {
             expectedDepartureToTime = getPropertyAsString(properties, "targetDepartureTimeTo");
 
             timeIntervalBetweenSeleniumQuery = getPropertyAsInt(properties, "timeIntervalBetweenSeleniumQuery");
-            timeIntervalBetweenHttpRequestQuery = getPropertyAsInt(properties , "timeIntervalBetweenHttpRequestQuery");
+            timeIntervalBetweenHttpRequestQuery = getPropertyAsInt(properties, "timeIntervalBetweenHttpRequestQuery");
             startTimeToQuery = getPropertyAsString(properties, "whenToStartQuery");
+            skips = getPropertyAsString(properties, "skips").split(",");
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -122,4 +124,11 @@ public class TravelInfo {
         this.startTimeToQuery = startTimeToQuery;
     }
 
+    public String[] getSkips() {
+        return skips;
+    }
+
+    public void setSkips(String[] skips) {
+        this.skips = skips;
+    }
 }

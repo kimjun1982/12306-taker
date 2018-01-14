@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.concurrent.*;
 
 public class HttpRequestThread implements Runnable {
-    private static final Logger log= LoggerFactory.getLogger(HttpRequestThread.class);
+    private static final Logger log = LoggerFactory.getLogger(HttpRequestThread.class);
     private TravelInfo travelInfo;
     private URL ticketQueryUrl;
     private BlockingQueue<Integer> blockingQueue;

@@ -18,7 +18,7 @@ public class DriverFactory {
         if (driver == null) {
             synchronized (DriverFactory.class) {
                 if (driver == null) {
-                    log.info("Chrome Driver Path: {}",Config.pathToChromeDriver);
+                    log.info("Chrome Driver Path: {}", Config.pathToChromeDriver);
                     System.setProperty("webdriver.chrome.driver", Config.pathToChromeDriver);
                     File driverExeFile = new File(Config.pathToChromeDriver);
                     if (!driverExeFile.canExecute()) {

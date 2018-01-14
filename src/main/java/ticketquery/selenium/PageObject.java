@@ -15,7 +15,6 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -76,7 +75,8 @@ public class PageObject {
     @FindBy(css = "tr[id^=ticket_]")
     public List<WebElement> listOfTrainReturnedByQuery;
 
-    @FindBy(css = ".btn72")
+    //    @FindBy(css = ".btn72")
+    @FindBy(css = ".no-br")
     public List<WebElement> buttonsOfBookTicket;
 
     @FindBy(css = "div[id^=\"train_num\"]")
@@ -91,7 +91,7 @@ public class PageObject {
     @FindBy(css = ".dhtmlx_window_active:not([style*=\"display: none;\"])")
     public WebElement confirmOrderPopup;
 
-    @FindBy(css = "#qr_submit_id")
+    @FindBy(css = ".dhtmlx_window_active:not([style*=\"display: none;\"]) #qr_submit_id")
     public WebElement confirmOrderBtn;
 
     @FindBy(css = "#payButton")
@@ -322,36 +322,37 @@ public class PageObject {
         try {
             new WebDriverWait(driver, 30).until(ExpectedConditions.elementToBeClickable(submitOrder));
             submitOrder.click();
+            new WebDriverWait(driver, 30).until(ExpectedConditions.visibilityOf(confirmOrderPopup));
         } catch (TimeoutException e) {
             e.printStackTrace();
         }
     }
 
     public void confirmOrder() {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-        Stopwatch total = Stopwatch.createStarted();
-        int i=0;
-        while (true) {
+        Stopwatch stopWatch = Stopwatch.createStarted();
+
+        By confirmOrderBtnBy = By.cssSelector(".dhtmlx_window_active:not([style*=\"display: none;\"]) #qr_submit_id");
+        int i = 0;
+        while (stopWatch.elapsed(TimeUnit.SECONDS) < 10) {
+            i++;
             try {
-                while (stopwatch.elapsed(TimeUnit.MILLISECONDS) < 5000) {
-                    i++;
-                    confirmOrderBtn.click();
+                Thread.sleep(300);
+                confirmOrderBtn.click();  //if button not exist, will throw exception, then continue inner loop
+                if (driver.findElements(confirmOrderBtnBy).size() == 0) {
+                    log.info("Count of clicking confirm order button: {}", i);
+                    log.info("Clicking confirm order button spend: {} seconds", stopWatch.elapsed(TimeUnit.MILLISECONDS));
+                    return;
                 }
-                if(confirmOrderBtn.isDisplayed()){
-                    stopwatch.reset();
-                    continue;
-                }
-                log.info("Number of clicking confirm order button: {}", i);
-                log.info("Take time for clicking confirm button: {} seconds", total.elapsed(TimeUnit.MILLISECONDS));
-                break;
-            } catch (Exception ignore) {
+                log.info("confirmOrder click seem ok, but not----------------------");
+            } catch (Exception e) {
+                log.info("confirmOrder failing into exception block after clicking--------------------");
             }
         }
     }
 
     public boolean hasProceededToPayment(int time) {
         try {
-            new WebDriverWait(driver, time).until(ExpectedConditions.elementToBeClickable(buttonLinkToPayment));
+            new WebDriverWait(driver, time).until(ExpectedConditions.visibilityOf(buttonLinkToPayment));
             return true;
         } catch (TimeoutException e) {
             return false;
@@ -416,9 +417,10 @@ public class PageObject {
     }
 
     private int getAvailableTicketNumber(List<Element> fullListOfTdNodes, int startIndex, int endIndex) {
-        int total = -1;
+        int total = 0;
         for (int i = startIndex; i <= endIndex; i++) {
             String cellText = fullListOfTdNodes.get(i).text().trim();
+
             if ("有".equalsIgnoreCase(cellText)) {
                 total += 1000;
             } else if ("--".equalsIgnoreCase(cellText)
