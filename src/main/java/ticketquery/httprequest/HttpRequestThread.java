@@ -25,14 +25,14 @@ import java.util.concurrent.*;
 
 public class HttpRequestThread implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(HttpRequestThread.class);
-    private TravelInfo travelInfo;
     private URL ticketQueryUrl;
     private BlockingQueue<Integer> blockingQueue;
+    private TravelInfo travelInfo;
     private ExecutorService executor = Executors.newCachedThreadPool();
 
-    public HttpRequestThread(BlockingQueue<Integer> queue) throws Exception {
+    public HttpRequestThread(BlockingQueue<Integer> queue, TravelInfo travelInfo) throws Exception {
         this.blockingQueue = queue;
-        this.travelInfo = TravelInfo.getTravelInfo();
+        this.travelInfo = travelInfo;
         this.ticketQueryUrl = Helper.getTicketQueryURL(travelInfo, Config.requestBaseURL);
     }
 

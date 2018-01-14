@@ -14,17 +14,19 @@ public class TravelInfo {
     private int timeIntervalBetweenHttpRequestQuery;
     private String startTimeToQuery;
     private String[] skips;
+    private String travelConfigFile;
 
-    private static TravelInfo INSTANCE = new TravelInfo();
+    private static TravelInfo INSTANCE = new TravelInfo(Config.travelInfoClasspath);
 
     public static TravelInfo getTravelInfo() {
         return INSTANCE;
     }
 
-    private TravelInfo() {
+    private TravelInfo(String travelConfigFile) {
         Properties properties = new Properties();
+        this.travelConfigFile = travelConfigFile;
         try {
-            InputStream is = TravelInfo.class.getClassLoader().getResourceAsStream(Config.travelInfoClasspath);
+            InputStream is = TravelInfo.class.getClassLoader().getResourceAsStream(this.travelConfigFile);
             properties.load(is);
             fromStation = getPropertyAsString(properties, "from");
             toStation = getPropertyAsString(properties, "to");

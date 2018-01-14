@@ -13,6 +13,16 @@ import java.time.format.DateTimeFormatter;
 
 public class Helper {
     private static final Logger log = LoggerFactory.getLogger(Helper.class);
+    private static LocalTime expectedFromTime;
+    private static LocalTime expectedToTime;
+    private static final TravelInfo travelInfo = TravelInfo.getTravelInfo();
+
+    static {
+        String[] fromTimeSplits = travelInfo.getExpectedDepartureFromTime().split(":");
+        String[] toTimeSplits = travelInfo.getExpectedDepartureToTime().split(":");
+        expectedFromTime = LocalTime.of(Integer.parseInt(fromTimeSplits[0]), Integer.parseInt(fromTimeSplits[1])).minusSeconds(1);
+        expectedToTime = LocalTime.of(Integer.parseInt(toTimeSplits[0]), Integer.parseInt(toTimeSplits[1])).plusSeconds(1);
+    }
 
     public static void waitToStartUntil(String startTime) {
         if ("0".equals(startTime) || "".equals(startTime) || startTime == null) return;
@@ -97,17 +107,6 @@ public class Helper {
         return url;
     }
 
-    private static LocalTime expectedFromTime;
-    private static LocalTime expectedToTime;
-
-    static {
-        TravelInfo travelInfo = TravelInfo.getTravelInfo();
-        String[] fromTimeSplits = travelInfo.getExpectedDepartureFromTime().split(":");
-        String[] toTimeSplits = travelInfo.getExpectedDepartureToTime().split(":");
-        expectedFromTime = LocalTime.of(Integer.parseInt(fromTimeSplits[0]), Integer.parseInt(fromTimeSplits[1])).minusSeconds(1);
-        expectedToTime = LocalTime.of(Integer.parseInt(toTimeSplits[0]), Integer.parseInt(toTimeSplits[1])).plusSeconds(1);
-    }
-
     public static boolean isTrainTimeFitted(ResultDataEntity resultEntity) throws Exception {
         String[] trainTimeSplits = resultEntity.getStart_time().split(":");
         LocalTime trainStartTime = LocalTime.of(Integer.parseInt(trainTimeSplits[0]),
@@ -117,8 +116,6 @@ public class Helper {
     }
 
     public static boolean isStationMatched(ResultDataEntity resultEntity) {
-        TravelInfo travelInfo = TravelInfo.getTravelInfo();
-
         String fromStationCode = Helper.getStationCode(travelInfo.getFromStation());
         String toStationCode = Helper.getStationCode(travelInfo.getToStation());
 

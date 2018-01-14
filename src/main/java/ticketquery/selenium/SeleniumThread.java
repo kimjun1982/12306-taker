@@ -18,10 +18,10 @@ public class SeleniumThread implements Runnable {
     private final int queryTimeInterval;
 
 
-    public SeleniumThread() {
-        this.driver = DriverFactory.getDriver();
+    public SeleniumThread(WebDriver driver, TravelInfo travelInfo) {
+        this.driver = driver;
+        this.travelInfo = travelInfo;
         this.pageObject = PageObject.getPageObj(this.driver);
-        this.travelInfo = TravelInfo.getTravelInfo();
         queryTimeInterval = travelInfo.getTimeIntervalBetweenSeleniumQuery();
     }
 
