@@ -233,8 +233,8 @@ public class PageObject {
         SeleniumUtil.waitUntilClickableThenClick(driver, this.queryTicketBtn);
     }
 
-    public List<QueryTicketRow> clickQueryButtonAndParseTicketDetails(int timeIntervalBetweenSeleniumQuery) {
-        log.info("Selenium Query - clickQueryButtonAndParseTicketDetails:: Click query button and to check if tickets result returns");
+    public List<QueryTicketRow> clickQueryAndParseTicketDtoList(int timeIntervalBetweenSeleniumQuery) {
+        log.info("Selenium Query - clickQueryAndParseTicketDtoList:: Click query button and to check if tickets result returns");
         SeleniumUtil.waitUntilClickableThenClick(driver, queryTicketBtn);
 
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -244,9 +244,9 @@ public class PageObject {
                     Thread.sleep(10);
                 }
 
-                List<QueryTicketRow> ticketRows = getTicketRowList();
+                List<QueryTicketRow> ticketRows = getTicketRowDtoList();
                 if (ticketRows.size() > 0) {
-                    log.info("Timer: clickQueryButtonAndParseTicketDetails=={} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                    log.info("Timer: clickQueryAndParseTicketDtoList=={} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
                     return ticketRows;
                 } else {
                     log.info("No ticket query result, click query again");
@@ -260,8 +260,8 @@ public class PageObject {
         }
     }
 
-    public List<String> clickQueryButtonAndParseTrainNumList(int timeIntervalBetweenSeleniumQuery) {
-        log.info("Selenium Query - clickQueryButtonAndParseTrainNumList:: Click query button and to check if tickets result returns");
+    public List<String[]> clickQueryAndParseTrainNumSeatList(int timeIntervalBetweenSeleniumQuery) {
+        log.info("Selenium Query - clickQueryAndParseTrainNumSeatList:: Click query button and to check if tickets result returns");
         SeleniumUtil.waitUntilClickableThenClick(driver, queryTicketBtn);
 
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -271,9 +271,9 @@ public class PageObject {
                     Thread.sleep(10);
                 }
 
-                List<String> trainNumberList = getTrainNumberList();
+                List<String[]> trainNumberList = getTrainNumAndSeatCountList();
                 if (trainNumberList.size() > 0) {
-                    log.info("Timer: clickQueryButtonAndParseTicketDetails=={} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                    log.info("Timer: clickQueryAndParseTrainNumSeatList=={} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
                     return trainNumberList;
                 } else {
                     log.info("No ticket query result, click query again");
@@ -364,16 +364,16 @@ public class PageObject {
         while (stopWatch.elapsed(TimeUnit.SECONDS) < 10) {
             i++;
             try {
-                Thread.sleep(300);
+                /*Thread.sleep(200);*/
                 confirmOrderBtn.click();  //if button not exist, will throw exception, then continue inner loop
                 if (driver.findElements(confirmOrderBtnBy).size() == 0) {
                     log.info("Count of clicking confirm order button: {}", i);
                     log.info("Clicking confirm order button spend: {} seconds", stopWatch.elapsed(TimeUnit.MILLISECONDS));
                     return;
                 }
-                log.info("confirmOrder click seem ok, but not----------------------");
+                log.info("confirmOrder click seems ok, but not ----------------------");
             } catch (Exception e) {
-                log.info("confirmOrder failing into exception block after clicking--------------------");
+                log.info("confirmOrder fall into exception block after clicking --------------------");
             }
         }
     }
@@ -387,7 +387,7 @@ public class PageObject {
         }
     }
 
-    public List<QueryTicketRow> getTicketRowList() throws TicketQueryNotReturnException {
+    public List<QueryTicketRow> getTicketRowDtoList() throws TicketQueryNotReturnException {
         By queryLeftTable_locator = By.cssSelector("#queryLeftTable");
         String cell_selector = "tr[id^=\"ticket\"] td";
         String document;
@@ -433,9 +433,7 @@ public class PageObject {
         return list;
     }
 
-    public List<String> getTrainNumberList() throws TicketQueryNotReturnException {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-
+    public List<String[]> getTrainNumAndSeatCountList() throws TicketQueryNotReturnException {
         By queryLeftTable_locator = By.cssSelector("#queryLeftTable");
         String cell_selector = "tr[id^=\"ticket\"] td";
         String document;
@@ -458,7 +456,7 @@ public class PageObject {
         int rowSize = cells.size() / tdSizeEachRow;
         IntStream intStream = IntStream.range(0, rowSize);
 
-        List<String> list = new ArrayList<>(rowSize);
+        List<String[]> list = new ArrayList<>(rowSize);
         for (int i = 0; i < rowSize; i++) {
             list.add(null);
         }
@@ -466,11 +464,14 @@ public class PageObject {
         intStream.parallel().forEach(rowIndex -> {
             Element firstTd = cells.get(rowIndex * tdSizeEachRow);
             String trainNumber = getTrainNumber(firstTd);
-            list.set(rowIndex, trainNumber);
+
+            int seatCountStartIndex = rowIndex * tdSizeEachRow + 1;
+            int seatCountEndIndex = rowIndex * tdSizeEachRow + 11;
+            Integer availableCount = getAvailableTicketNumber(cells, seatCountStartIndex, seatCountEndIndex);
+            list.set(rowIndex, new String[]{ trainNumber, String.valueOf(availableCount)});
         });
 
-        list.forEach(System.out::println);
-        log.info("time to parse html get train number list: {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        list.forEach(item -> System.out.println(item[0] +" - " + item[1]));
         return list;
     }
 
@@ -501,7 +502,7 @@ public class PageObject {
                         try {
                             return Integer.parseInt(cellText);
                         } catch (NumberFormatException e) {
-                            log.error("cellText {} cannot parse to integer for calculating available ticket count", cellText);
+                            /*log.error("cellText {} cannot parse to integer for calculating available ticket count", cellText);*/
                             return 0;
                         }
                     }

@@ -13,18 +13,19 @@ import java.util.List;
 
 public class SeleniumThread implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(SeleniumThread.class);
+    private volatile static boolean isBookingThreadInProgress = false;
     private TravelInfo travelInfo;
     private PageObject pageObject;
     private WebDriver driver;
-    private volatile static boolean isBookingThreadInProgress = false;
     private final int queryTimeInterval;
+    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
 
     public SeleniumThread(WebDriver driver, TravelInfo travelInfo) {
         this.driver = driver;
         this.travelInfo = travelInfo;
         this.pageObject = PageObject.getPageObj(this.driver);
-        queryTimeInterval = travelInfo.getTimeIntervalBetweenSeleniumQuery();
+        this.queryTimeInterval = travelInfo.getTimeIntervalBetweenSeleniumQuery();
     }
 
     private static void pauseHttpRequestThread() {
@@ -42,22 +43,26 @@ public class SeleniumThread implements Runnable {
     @Override
     public void run() {
         this.initialSteps();
-        this.timeWaiter();
+        this.hangOnBeforeStart();
+        /**
+         * Comment below stopper thread if want to keep running
+         */
+        this.stopFarAfterStartThread(30);
 
         while (true) {
             try {
-                log.info("Selenium Request:: Consuming arrived data");
                 int bookingIndex;
 
                 if (!"".equals(travelInfo.getTrainOnlyAccept())) {
-                    List<String> trainNumberList = pageObject.clickQueryButtonAndParseTrainNumList(queryTimeInterval);
-                    bookingIndex = SeleniumThreadHelper.findSpecifiedTrain(trainNumberList, travelInfo.getTrainOnlyAccept());
+                    List<String[]> trainNumberList = pageObject.clickQueryAndParseTrainNumSeatList(queryTimeInterval);
+                    bookingIndex = SeleniumThreadHelper.findSpecifiedTrainOnceAvailable(trainNumberList, travelInfo.getTrainOnlyAccept());
                 } else {
-                    List<QueryTicketRow> queryResultList = pageObject.clickQueryButtonAndParseTicketDetails(queryTimeInterval);
-                    bookingIndex = SeleniumThreadHelper.findFirstWithinTimeRange(queryResultList, travelInfo);
+                    List<QueryTicketRow> queryResultList = pageObject.clickQueryAndParseTicketDtoList(queryTimeInterval);
+                    bookingIndex = SeleniumThreadHelper.findMostSeatsWithinTimeRange(queryResultList, travelInfo);
                 }
 
                 if (bookingIndex <= -1) {
+                    log.info("No train available for booking, loop after a short while...");
                     Thread.sleep(travelInfo.getTimeIntervalBetweenSeleniumQuery());
                     continue;
                 }
@@ -70,7 +75,7 @@ public class SeleniumThread implements Runnable {
 
                 pageObject.confirmOrder();
 
-                if (pageObject.hasProceededToPayment(120)) {
+                if (pageObject.hasProceededToPayment(60 * 10)) {
                     log.info(" Congratulations, book successfully, pls do payment manually");
                     Thread.sleep(Integer.MAX_VALUE);
                 }
@@ -96,8 +101,9 @@ public class SeleniumThread implements Runnable {
         pageObject.simplyTicketQuery();
     }
 
-    private void timeWaiter() {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private void hangOnBeforeStart() {
+        if("".equals(travelInfo.getStartTimeToQuery())) return;
+
         LocalDateTime startTime = LocalDateTime.parse(travelInfo.getStartTimeToQuery(), formatter);
         log.info("Waiting until {}, now is {}", startTime, LocalDateTime.now());
 
@@ -108,7 +114,7 @@ public class SeleniumThread implements Runnable {
                 Thread.sleep(WAIT_TIME);
                 counter++;
                 /**
-                 * every 10 seconds to make simple query in case of being forced to logoff
+                 * every approx 10 seconds to make simple query in case of being forced to logoff
                  * but not do that if too close to start time
                  */
                 if (counter * WAIT_TIME > 10 * 1000) {
@@ -122,5 +128,25 @@ public class SeleniumThread implements Runnable {
             }
         }
         log.info("Selenium Runner resumes at {}", LocalDateTime.now());
+    }
+
+    private void stopFarAfterStartThread(int minutesAfterKickStart) {
+        if("".equals(travelInfo.getStartTimeToQuery())) return;
+
+        LocalDateTime endTime = LocalDateTime.parse(travelInfo.getStartTimeToQuery(), formatter).plusMinutes(minutesAfterKickStart);
+        new Thread(()->{
+            while (true) {
+                if (LocalDateTime.now().isAfter(endTime)) {
+                    log.warn("process to exit as {} minutes after kick start time: [{}]",minutesAfterKickStart, travelInfo.getStartTimeToQuery());
+                    System.exit(0);
+                } else {
+                    try {
+                        Thread.sleep(60 * 1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
     }
 }

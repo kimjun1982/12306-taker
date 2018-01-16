@@ -54,8 +54,13 @@ public class SeleniumThreadHelper {
         return -1;
     }
 
-    public static int findSpecifiedTrain(List<String> trainNumberList, String trainOnlyAccept) {
-        return trainNumberList.indexOf(trainOnlyAccept);
+    public static int findSpecifiedTrainOnceAvailable(List<String[]> trainNumberList, String trainOnlyAccept) {
+        for (int i = 0; i < trainNumberList.size(); i++) {
+            if (trainNumberList.get(i)[0].equals(trainOnlyAccept) && Integer.parseInt(trainNumberList.get(i)[1]) > 0) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private static boolean inSkipList(QueryTicketRow thisRow, TravelInfo travelInfo) {
