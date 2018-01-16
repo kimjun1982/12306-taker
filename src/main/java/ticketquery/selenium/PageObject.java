@@ -75,7 +75,9 @@ public class PageObject {
     @FindBy(css = "tr[id^=ticket_]")
     public List<WebElement> listOfTrainReturnedByQuery;
 
-    //    @FindBy(css = ".btn72")
+    @FindBy(css = ".train[id^=\"ticket\"] div a")
+    public List<WebElement> trainNumberElements;
+
     @FindBy(css = ".no-br")
     public List<WebElement> buttonsOfBookTicket;
 
@@ -217,11 +219,6 @@ public class PageObject {
         });
     }
 
-    public void simplyClickQueryButton() {
-        waitUntilQueryButtonEnabled(30);
-        SeleniumUtil.waitUntilClickableThenClick(driver, queryTicketBtn);
-    }
-
     private boolean isLoadingDisplay() {
         By loadingIconBy = By.cssSelector(".dhx_modal_cover");
         WebElement loadingIcon = driver.findElement(loadingIconBy);
@@ -231,9 +228,13 @@ public class PageObject {
         //<div class="dhx_modal_cover" style="display: inline-block;"></div>
     }
 
-    public List<QueryTicketRow> clickQueryButtonEnsureResultReturn(int timeIntervalBetweenSeleniumQuery) {
+    public void simplyTicketQuery() {
+        log.info("Simply do a single click on the ticket query button");
+        SeleniumUtil.waitUntilClickableThenClick(driver, this.queryTicketBtn);
+    }
 
-        log.info("Selenium Query:: Click query button and to check if tickets result returns");
+    public List<QueryTicketRow> clickQueryButtonAndParseTicketDetails(int timeIntervalBetweenSeleniumQuery) {
+        log.info("Selenium Query - clickQueryButtonAndParseTicketDetails:: Click query button and to check if tickets result returns");
         SeleniumUtil.waitUntilClickableThenClick(driver, queryTicketBtn);
 
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -245,8 +246,35 @@ public class PageObject {
 
                 List<QueryTicketRow> ticketRows = getTicketRowList();
                 if (ticketRows.size() > 0) {
-                    log.info("Timer: clickQueryButtonEnsureResultReturn=={} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                    log.info("Timer: clickQueryButtonAndParseTicketDetails=={} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
                     return ticketRows;
+                } else {
+                    log.info("No ticket query result, click query again");
+                    Thread.sleep(timeIntervalBetweenSeleniumQuery);
+                    SeleniumUtil.waitUntilClickableThenClick(driver, queryTicketBtn);
+                }
+            } catch (TicketQueryNotReturnException e) {
+                e.printStackTrace();
+            } catch (InterruptedException ignored) {
+            }
+        }
+    }
+
+    public List<String> clickQueryButtonAndParseTrainNumList(int timeIntervalBetweenSeleniumQuery) {
+        log.info("Selenium Query - clickQueryButtonAndParseTrainNumList:: Click query button and to check if tickets result returns");
+        SeleniumUtil.waitUntilClickableThenClick(driver, queryTicketBtn);
+
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        while (true) {
+            try {
+                while (isLoadingDisplay()) {
+                    Thread.sleep(10);
+                }
+
+                List<String> trainNumberList = getTrainNumberList();
+                if (trainNumberList.size() > 0) {
+                    log.info("Timer: clickQueryButtonAndParseTicketDetails=={} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                    return trainNumberList;
                 } else {
                     log.info("No ticket query result, click query again");
                     Thread.sleep(timeIntervalBetweenSeleniumQuery);
@@ -401,7 +429,48 @@ public class PageObject {
                     departureArrivalTimes[1], availableCount, isBookable));
         });
 
-        list.stream().forEach(System.out::println);
+        list.forEach(System.out::println);
+        return list;
+    }
+
+    public List<String> getTrainNumberList() throws TicketQueryNotReturnException {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
+        By queryLeftTable_locator = By.cssSelector("#queryLeftTable");
+        String cell_selector = "tr[id^=\"ticket\"] td";
+        String document;
+
+        try {
+            WebElement queryLeftTable = driver.findElement(queryLeftTable_locator);
+            document = queryLeftTable.getAttribute("innerHTML");
+            if ("".equals(document)) {
+                log.info("Empty ticket query result");
+                return Collections.emptyList();
+            }
+        } catch (StaleElementReferenceException | NoSuchElementException e) {
+            throw new TicketQueryNotReturnException(e.getMessage(), e);
+        }
+
+        Document ticketsTable = Jsoup.parse("<table><tbody>" + document + "</tbody></table>");
+        Elements cells = ticketsTable.select(cell_selector);
+
+        int tdSizeEachRow = 13;
+        int rowSize = cells.size() / tdSizeEachRow;
+        IntStream intStream = IntStream.range(0, rowSize);
+
+        List<String> list = new ArrayList<>(rowSize);
+        for (int i = 0; i < rowSize; i++) {
+            list.add(null);
+        }
+
+        intStream.parallel().forEach(rowIndex -> {
+            Element firstTd = cells.get(rowIndex * tdSizeEachRow);
+            String trainNumber = getTrainNumber(firstTd);
+            list.set(rowIndex, trainNumber);
+        });
+
+        list.forEach(System.out::println);
+        log.info("time to parse html get train number list: {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
         return list;
     }
 
@@ -417,25 +486,26 @@ public class PageObject {
     }
 
     private int getAvailableTicketNumber(List<Element> fullListOfTdNodes, int startIndex, int endIndex) {
-        int total = 0;
-        for (int i = startIndex; i <= endIndex; i++) {
-            String cellText = fullListOfTdNodes.get(i).text().trim();
+        return IntStream.range(startIndex, endIndex + 1)
+                .parallel()
+                .map(i -> {
+                    String cellText = fullListOfTdNodes.get(i).text().trim();
 
-            if ("有".equalsIgnoreCase(cellText)) {
-                total += 1000;
-            } else if ("--".equalsIgnoreCase(cellText)
-                    || "0".equalsIgnoreCase(cellText)
-                    || "无".equalsIgnoreCase(cellText)) {
-                total += 0;
-            } else {
-                try {
-                    total += Integer.parseInt(cellText);
-                } catch (NumberFormatException e) {
-                    log.error("cellText {} cannot parse to integer for calculating available ticket count", cellText);
-                    total += 0;
-                }
-            }
-        }
-        return total;
+                    if ("有".equalsIgnoreCase(cellText)) {
+                        return 1000;
+                    } else if ("--".equalsIgnoreCase(cellText)
+                            || "0".equalsIgnoreCase(cellText)
+                            || "无".equalsIgnoreCase(cellText)) {
+                        return 0;
+                    } else {
+                        try {
+                            return Integer.parseInt(cellText);
+                        } catch (NumberFormatException e) {
+                            log.error("cellText {} cannot parse to integer for calculating available ticket count", cellText);
+                            return 0;
+                        }
+                    }
+                })
+                .sum();
     }
 }

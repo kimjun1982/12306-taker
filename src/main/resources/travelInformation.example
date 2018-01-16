@@ -8,3 +8,4 @@ timeIntervalBetweenSeleniumQuery = 1500
 timeIntervalBetweenHttpRequestQuery=2000
 whenToStartQuery = 2018-01-15 13:59:00
 skips = D2943
+trainOnlyAccept = D2962

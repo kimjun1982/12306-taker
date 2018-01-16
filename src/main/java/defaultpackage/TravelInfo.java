@@ -15,6 +15,7 @@ public class TravelInfo {
     private String startTimeToQuery;
     private String[] skips;
     private String travelConfigFile;
+    private String trainOnlyAccept;
 
     private static TravelInfo INSTANCE = new TravelInfo(Config.travelInfoClasspath);
 
@@ -39,6 +40,7 @@ public class TravelInfo {
             timeIntervalBetweenHttpRequestQuery = getPropertyAsInt(properties, "timeIntervalBetweenHttpRequestQuery");
             startTimeToQuery = getPropertyAsString(properties, "whenToStartQuery");
             skips = getPropertyAsString(properties, "skips").split(",");
+            trainOnlyAccept = getPropertyAsString(properties, "trainOnlyAccept");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -132,5 +134,14 @@ public class TravelInfo {
 
     public void setSkips(String[] skips) {
         this.skips = skips;
+    }
+
+
+    public String getTrainOnlyAccept() {
+        return trainOnlyAccept;
+    }
+
+    public void setTrainOnlyAccept(String trainOnlyAccept) {
+        this.trainOnlyAccept = trainOnlyAccept;
     }
 }

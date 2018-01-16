@@ -7,6 +7,8 @@ import org.openqa.selenium.WebDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class SeleniumThread implements Runnable {
@@ -40,14 +42,20 @@ public class SeleniumThread implements Runnable {
     @Override
     public void run() {
         this.initialSteps();
+        this.timeWaiter();
 
         while (true) {
             try {
                 log.info("Selenium Request:: Consuming arrived data");
+                int bookingIndex;
 
-                List<QueryTicketRow> queryResultList = pageObject.clickQueryButtonEnsureResultReturn(queryTimeInterval);
-
-                int bookingIndex = SeleniumThreadHelper.findFirstWithinTimeRange(queryResultList, travelInfo);
+                if (!"".equals(travelInfo.getTrainOnlyAccept())) {
+                    List<String> trainNumberList = pageObject.clickQueryButtonAndParseTrainNumList(queryTimeInterval);
+                    bookingIndex = SeleniumThreadHelper.findSpecifiedTrain(trainNumberList, travelInfo.getTrainOnlyAccept());
+                } else {
+                    List<QueryTicketRow> queryResultList = pageObject.clickQueryButtonAndParseTicketDetails(queryTimeInterval);
+                    bookingIndex = SeleniumThreadHelper.findFirstWithinTimeRange(queryResultList, travelInfo);
+                }
 
                 if (bookingIndex <= -1) {
                     Thread.sleep(travelInfo.getTimeIntervalBetweenSeleniumQuery());
@@ -84,5 +92,35 @@ public class SeleniumThread implements Runnable {
         pageObject.setFromToStation(travelInfo.getFromStation(), travelInfo.getToStation());
 
         pageObject.setDepartureDate(travelInfo.getDepartureDate());
+
+        pageObject.simplyTicketQuery();
+    }
+
+    private void timeWaiter() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        LocalDateTime startTime = LocalDateTime.parse(travelInfo.getStartTimeToQuery(), formatter);
+        log.info("Waiting until {}, now is {}", startTime, LocalDateTime.now());
+
+        int counter = 0;
+        long WAIT_TIME = 5L;
+        while (LocalDateTime.now().isBefore(startTime)) {
+            try {
+                Thread.sleep(WAIT_TIME);
+                counter++;
+                /**
+                 * every 10 seconds to make simple query in case of being forced to logoff
+                 * but not do that if too close to start time
+                 */
+                if (counter * WAIT_TIME > 10 * 1000) {
+                    counter = 0;
+                    if (LocalDateTime.now().plusSeconds(10).isBefore(startTime)) {
+                        pageObject.simplyTicketQuery();
+                    }
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        log.info("Selenium Runner resumes at {}", LocalDateTime.now());
     }
 }
